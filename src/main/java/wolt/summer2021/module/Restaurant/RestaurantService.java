@@ -51,7 +51,7 @@ public class RestaurantService {
 	}
 
 	// TO DO : Return final lists
-	public List<RestaurantVO> restaurantsInMyArea(User user) {
+	public Section restaurantsInMyArea(User user) {
 		// 1. Get user location
 		final double userLon = user.getLon();
 		final double userLat = user.getLat();
@@ -62,6 +62,7 @@ public class RestaurantService {
 		List<Restaurant> nearByRestaurants = nearByList(userLon, userLat);
 
 		// 3. Formatting
+		Section discoverSection = new Section();
 		List<RestaurantVO> discovery = new ArrayList<>();
 
 		RestaurantData[] populars = new RestaurantData[10];
@@ -98,7 +99,8 @@ public class RestaurantService {
 		}		
 		discovery.add(vo3);
 
-		return discovery;
+		discoverSection.setSections(discovery);
+		return discoverSection;
 
 	}
 

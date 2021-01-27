@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.AllArgsConstructor;
 import wolt.summer2021.module.Restaurant.RestaurantService;
 import wolt.summer2021.module.Restaurant.RestaurantVO;
+import wolt.summer2021.module.Restaurant.Section;
 import wolt.summer2021.module.user.User;
 import wolt.summer2021.module.user.UserService;
 
@@ -21,9 +22,9 @@ public class MainController {
 	private final UserService userService;
 
 	@GetMapping("/")
-	public List<RestaurantVO> main(Model model) {
+	public Section main(Model model) {
 		User user = userService.getUserLocation();		
-		List<RestaurantVO> discovery = restaurantService.restaurantsInMyArea(user);
+		Section discovery = restaurantService.restaurantsInMyArea(user);
 		return discovery;
 
 	}
