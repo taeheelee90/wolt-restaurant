@@ -17,7 +17,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import wolt.summer2021.module.Restaurant.Restaurant;
 import wolt.summer2021.module.Restaurant.RestaurantRepository;
 import wolt.summer2021.module.Restaurant.RestaurantService;
-import wolt.summer2021.module.user.User;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -27,13 +26,14 @@ public class RestaurantServiceTest {
 	private RestaurantRepository restaurantRepository;
 	@Autowired
 	private RestaurantService restaurantService;
-	private final User mockUser = new User();
+	double lat;
+	double lon;
 
 	@BeforeEach()
 	void beforeEach() throws IOException {
 		restaurantService.initRestaurantData();
-		mockUser.setLat(60.1699);
-		mockUser.setLon(24.9384);
+		lat = 60.1709;
+		lon = 24.941;
 	}
 
 	@Test
@@ -45,7 +45,7 @@ public class RestaurantServiceTest {
 	@Test
 	@DisplayName("Popular restaurnts list")
 	void checkPopularList() {
-		List<Restaurant> popularList = restaurantService.popularList(mockUser);
+		List<Restaurant> popularList = restaurantService.popularList(lon, lat);
 		assertNotNull(popularList);
 		assertTrue(popularList.size() <= 10);
 		assertTrue(checkDistanceOfAllRestaurants(popularList));
@@ -54,7 +54,7 @@ public class RestaurantServiceTest {
 	@Test
 	@DisplayName("New restaurants list")
 	void checkNewList() {
-		List<Restaurant> newList = restaurantService.newList(mockUser);
+		List<Restaurant> newList = restaurantService.newList(lon, lat);
 		assertNotNull(newList);
 		assertTrue(newList.size() <= 10);
 		assertTrue(checkDistanceOfAllRestaurants(newList));
@@ -66,7 +66,7 @@ public class RestaurantServiceTest {
 	@Test
 	@DisplayName("Nearby restaurants list")
 	void checkNearByList() {
-		List<Restaurant> nearByList = restaurantService.nearByList(mockUser);
+		List<Restaurant> nearByList = restaurantService.nearByList(lon, lat);
 		assertNotNull(nearByList);
 		assertTrue(nearByList.size() <= 10);
 		assertTrue(checkDistanceOfAllRestaurants(nearByList));
@@ -74,10 +74,10 @@ public class RestaurantServiceTest {
 		for (int i = 0; i < nearByList.size() - 1; i++) {
 			int j = i + 1;
 
-			double distanceI = restaurantService.calcDistance(mockUser.getLon(), mockUser.getLat(),
-					nearByList.get(i).getLongitude(), nearByList.get(i).getLatitude());
-			double distanceJ = restaurantService.calcDistance(mockUser.getLon(), mockUser.getLat(),
-					nearByList.get(j).getLongitude(), nearByList.get(j).getLatitude());
+			double distanceI = restaurantService.calcDistance(lon, lat, nearByList.get(i).getLongitude(),
+					nearByList.get(i).getLatitude());
+			double distanceJ = restaurantService.calcDistance(lon, lat, nearByList.get(j).getLongitude(),
+					nearByList.get(j).getLatitude());
 
 			assertTrue(distanceI < distanceJ);
 		}
@@ -86,8 +86,7 @@ public class RestaurantServiceTest {
 	private boolean checkDistanceOfAllRestaurants(List<Restaurant> list) {
 		boolean result = true;
 		for (Restaurant r : list) {
-			double distance = restaurantService.calcDistance(mockUser.getLon(), mockUser.getLat(), r.getLongitude(),
-					r.getLatitude());
+			double distance = restaurantService.calcDistance(lon, lat, r.getLongitude(), r.getLatitude());
 			if (distance > 1.5)
 				result = false;
 		}

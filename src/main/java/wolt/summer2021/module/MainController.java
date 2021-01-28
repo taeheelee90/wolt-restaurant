@@ -1,26 +1,22 @@
 package wolt.summer2021.module;
 
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.AllArgsConstructor;
 import wolt.summer2021.module.Restaurant.RestaurantService;
 import wolt.summer2021.module.Restaurant.Section;
-import wolt.summer2021.module.user.User;
-import wolt.summer2021.module.user.UserService;
 
 @RestController
 @AllArgsConstructor
 public class MainController {
 
 	private final RestaurantService restaurantService;
-	private final UserService userService;
-
-	@GetMapping("/")
-	public Section main(Model model) {
-		User user = userService.getUserLocation();		
-		Section discovery = restaurantService.restaurantsInMyArea(user);
+	
+	@GetMapping("/discovery")
+	public Section main(@RequestParam double lat , @RequestParam double lon) {			
+		Section discovery = restaurantService.restaurantsInMyArea(lat, lon);
 		return discovery;
 	}
 }

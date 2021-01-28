@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import wolt.summer2021.module.Restaurant.RestaurantVO.RestaurantData;
-import wolt.summer2021.module.user.User;
+
 
 @Service
 @Transactional
@@ -50,27 +50,27 @@ public class RestaurantService {
 	}
 
 	// Return final discovery
-	public Section restaurantsInMyArea(User user) {
+	public Section restaurantsInMyArea(double lat, double lon) {
 		// 1. Make 3 different lists
-		List<Restaurant> popularRestaurants = popularList(user);
-		List<Restaurant> newRestaurants = newList(user);
-		List<Restaurant> nearByRestaurants = nearByList(user);
+		List<Restaurant> popularRestaurants = popularList(lon, lat);
+		List<Restaurant> newRestaurants = newList(lon, lat);
+		List<Restaurant> nearByRestaurants = nearByList(lon, lat);
 
 		// 2. Combine lists
 		List<RestaurantVO> discovery = combineLists(popularRestaurants, newRestaurants, nearByRestaurants);
-		
+
 		// 3. Format combined lists
 		Section discoverySection = new Section();
 		discoverySection.setSections(discovery);
-		
+
 		return discoverySection;
 	}
 
-
-	// Return 10 popular restaurants in descending order 
-	public List<Restaurant> popularList(User user) {
-		final double userLon = user.getLon();
-		final double userLat = user.getLat();
+	// Return 10 popular restaurants in descending order
+	public List<Restaurant> popularList(double userLon, double userLat) {
+		/*
+		 * final double userLon = user.getLon(); final double userLat = user.getLat();
+		 */
 		List<Restaurant> restaurants = repository.findByOnlineOrderByPopularityDesc(true);
 		restaurants = removeTooFarRestaurants(restaurants, userLon, userLat);
 
@@ -81,9 +81,7 @@ public class RestaurantService {
 	}
 
 	// Return 10 newest restaurants in descending order
-	public List<Restaurant> newList(User user) {
-		final double userLon = user.getLon();
-		final double userLat = user.getLat();
+	public List<Restaurant> newList(double userLon, double userLat) {
 		List<Restaurant> restaurants = repository.findByOnlineOrderByLaunchDateDesc(true);
 		restaurants = removeTooFarRestaurants(restaurants, userLon, userLat);
 
@@ -97,9 +95,7 @@ public class RestaurantService {
 	}
 
 	// Return 10 closest restaurants in ascending order
-	public List<Restaurant> nearByList(User user) {
-		final double userLon = user.getLon();
-		final double userLat = user.getLat();
+	public List<Restaurant> nearByList(double userLon, double userLat) {
 		List<Restaurant> restaurants = repository.findByOnline(true);
 		restaurants = removeTooFarRestaurants(restaurants, userLon, userLat);
 
@@ -114,7 +110,7 @@ public class RestaurantService {
 
 	// Order NearBy Restaurants by distance
 	private List<Restaurant> orderByDistance(List<Restaurant> restaurants, double userLon, double userLat) {
-	
+
 		for (int i = 0; i < restaurants.size() - 1; i++) {
 			for (int j = 1; j < restaurants.size(); j++) {
 				double d1 = calcDistance(userLon, userLat, restaurants.get(j - 1).getLongitude(),
@@ -170,31 +166,29 @@ public class RestaurantService {
 		return earthRadius * Math.acos(Math.sin(userLat) * Math.sin(restaurantLat)
 				+ Math.cos(userLat) * Math.cos(restaurantLat) * Math.cos(userLong - restaurantLong));
 	}
-	
 
 	// Combine all three lists to one list
 	private List<RestaurantVO> combineLists(List<Restaurant> popularRestaurants, List<Restaurant> newRestaurants,
 			List<Restaurant> nearByRestaurants) {
-		
+
 		List<RestaurantVO> discovery = new ArrayList<>();
-		
+
 		RestaurantVO vo1 = new RestaurantVO();
 		RestaurantVO vo2 = new RestaurantVO();
 		RestaurantVO vo3 = new RestaurantVO();
-		
+
 		vo1.setTitle("Popular Restaurants");
-		mapRestaurantsToData(popularRestaurants, vo1);		
+		mapRestaurantsToData(popularRestaurants, vo1);
 		discovery.add(vo1);
-		
+
 		vo2.setTitle("New Restaurants");
 		mapRestaurantsToData(newRestaurants, vo2);
 		discovery.add(vo2);
 
-		
 		vo3.setTitle("Nearby Restaurants");
 		mapRestaurantsToData(nearByRestaurants, vo3);
 		discovery.add(vo3);
-		
+
 		return discovery;
 	}
 
@@ -205,6 +199,7 @@ public class RestaurantService {
 			data.getLocation().add(r.getLongitude());
 			data.getLocation().add(r.getLatitude());
 			vo.getRestaurants()[restaurants.indexOf(r)] = data;
-		}		
+		}
 	}
+
 }
