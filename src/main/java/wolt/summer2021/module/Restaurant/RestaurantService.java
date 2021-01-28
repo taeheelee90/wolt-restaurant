@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import wolt.summer2021.module.Restaurant.RestaurantVO.RestaurantData;
 
-
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -40,7 +39,8 @@ public class RestaurantService {
 		RestaurantVO restaurantVO = objectMapper.readValue(restaurants, RestaurantVO.class);
 
 		// 3. Save restaurant data to DB
-		RestaurantData[] restaurantData = restaurantVO.getRestaurants();
+		// RestaurantData[] restaurantData = restaurantVO.getRestaurants();
+		List<RestaurantData> restaurantData = restaurantVO.getRestaurants();
 		for (RestaurantData data : restaurantData) {
 			Restaurant restaurant = modelMapper.map(data, Restaurant.class);
 			restaurant.setLongitude(data.getLocation().get(0));
@@ -68,9 +68,6 @@ public class RestaurantService {
 
 	// Return 10 popular restaurants in descending order
 	public List<Restaurant> popularList(double userLon, double userLat) {
-		/*
-		 * final double userLon = user.getLon(); final double userLat = user.getLat();
-		 */
 		List<Restaurant> restaurants = repository.findByOnlineOrderByPopularityDesc(true);
 		restaurants = removeTooFarRestaurants(restaurants, userLon, userLat);
 
@@ -108,6 +105,32 @@ public class RestaurantService {
 		return restaurants;
 	}
 
+	// Remove restaurants located too far from user
+	private List<Restaurant> removeTooFarRestaurants(List<Restaurant> restaurants, double userLon, double userLat) {
+		List<Restaurant> toRemove = new ArrayList<>();
+
+		for (Restaurant r : restaurants) {
+			if (calcDistance(userLon, userLat, r.getLongitude(), r.getLatitude()) >= 1.5) {
+				toRemove.add(r);
+			}
+		}
+		restaurants.removeAll(toRemove);
+
+		return restaurants;
+	}
+
+	// Limit the size of list to 10 restaurants
+	private List<Restaurant> limitSizeToTen(List<Restaurant> restaurants) {
+		List<Restaurant> toRemove = new ArrayList<>();
+		for (Restaurant r : restaurants) {
+			if (restaurants.indexOf(r) >= 10) {
+				toRemove.add(r);
+			}
+		}
+		restaurants.removeAll(toRemove);
+		return restaurants;
+	}
+
 	// Order NearBy Restaurants by distance
 	private List<Restaurant> orderByDistance(List<Restaurant> restaurants, double userLon, double userLat) {
 
@@ -125,32 +148,6 @@ public class RestaurantService {
 				}
 			}
 		}
-		return restaurants;
-	}
-
-	// Limit the size of list to 10 restaurants
-	private List<Restaurant> limitSizeToTen(List<Restaurant> restaurants) {
-		List<Restaurant> toRemove = new ArrayList<>();
-		for (Restaurant r : restaurants) {
-			if (restaurants.indexOf(r) >= 10) {
-				toRemove.add(r);
-			}
-		}
-		restaurants.removeAll(toRemove);
-		return restaurants;
-	}
-
-	// Remove restaurants located too far from user
-	private List<Restaurant> removeTooFarRestaurants(List<Restaurant> restaurants, double userLon, double userLat) {
-		List<Restaurant> toRemove = new ArrayList<>();
-
-		for (Restaurant r : restaurants) {
-			if (calcDistance(userLon, userLat, r.getLongitude(), r.getLatitude()) >= 1.5) {
-				toRemove.add(r);
-			}
-		}
-		restaurants.removeAll(toRemove);
-
 		return restaurants;
 	}
 
@@ -174,31 +171,30 @@ public class RestaurantService {
 		List<RestaurantVO> discovery = new ArrayList<>();
 
 		RestaurantVO vo1 = new RestaurantVO();
-		RestaurantVO vo2 = new RestaurantVO();
-		RestaurantVO vo3 = new RestaurantVO();
-
 		vo1.setTitle("Popular Restaurants");
-		mapRestaurantsToData(popularRestaurants, vo1);
-		discovery.add(vo1);
+		mapRestaurantsToData(popularRestaurants, vo1, discovery);
 
+		RestaurantVO vo2 = new RestaurantVO();
 		vo2.setTitle("New Restaurants");
-		mapRestaurantsToData(newRestaurants, vo2);
-		discovery.add(vo2);
+		mapRestaurantsToData(newRestaurants, vo2, discovery);
 
+		RestaurantVO vo3 = new RestaurantVO();
 		vo3.setTitle("Nearby Restaurants");
-		mapRestaurantsToData(nearByRestaurants, vo3);
-		discovery.add(vo3);
+		mapRestaurantsToData(nearByRestaurants, vo3, discovery);
 
 		return discovery;
 	}
 
 	// Map Restaurants to RestaurantData
-	private void mapRestaurantsToData(List<Restaurant> restaurants, RestaurantVO vo) {
+	private void mapRestaurantsToData(List<Restaurant> restaurants, RestaurantVO vo, List<RestaurantVO> discovery) {
 		for (Restaurant r : restaurants) {
 			RestaurantData data = modelMapper.map(r, RestaurantData.class);
 			data.getLocation().add(r.getLongitude());
 			data.getLocation().add(r.getLatitude());
-			vo.getRestaurants()[restaurants.indexOf(r)] = data;
+			vo.getRestaurants().add(data);
+		}
+		if (vo.getRestaurants().size() != 0) {
+			discovery.add(vo);
 		}
 	}
 

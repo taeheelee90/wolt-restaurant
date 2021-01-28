@@ -3,10 +3,8 @@ package wolt.summer2021;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.util.List;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
@@ -15,7 +13,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import wolt.summer2021.module.Restaurant.Restaurant;
-import wolt.summer2021.module.Restaurant.RestaurantRepository;
 import wolt.summer2021.module.Restaurant.RestaurantService;
 
 @RunWith(SpringRunner.class)
@@ -23,36 +20,35 @@ import wolt.summer2021.module.Restaurant.RestaurantService;
 public class RestaurantServiceTest {
 
 	@Autowired
-	private RestaurantRepository restaurantRepository;
-	@Autowired
 	private RestaurantService restaurantService;
-	double lat;
-	double lon;
-
-	@BeforeEach()
-	void beforeEach() throws IOException {
-		restaurantService.initRestaurantData();
-		lat = 60.1709;
-		lon = 24.941;
-	}
+	double lat = 60.1709;
+	double lon = 24.941;
+	double notInHelLat = 10; // field to test location not in Helsinki
 
 	@Test
-	@DisplayName("Restaurant repository is not empty")
-	void checkRestaurantRepository() throws Exception {
-		assertNotNull(restaurantRepository);
-	}
-
-	@Test
-	@DisplayName("Popular restaurnts list")
+	@DisplayName("Popular restaurnts list - valid coordinates")
 	void checkPopularList() {
 		List<Restaurant> popularList = restaurantService.popularList(lon, lat);
 		assertNotNull(popularList);
 		assertTrue(popularList.size() <= 10);
 		assertTrue(checkDistanceOfAllRestaurants(popularList));
+		for (int i = 0; i < popularList.size() - 1; i++) {
+			int j = i + 1;
+			assertTrue(popularList.get(i).getPopularity() > popularList.get(j).getPopularity());
+		}
 	}
 
 	@Test
-	@DisplayName("New restaurants list")
+	@DisplayName("Popular restaurnts list - invalid coordinates")
+	void checkPopularList_inValidLat() {
+		List<Restaurant> popularList = restaurantService.popularList(lon, notInHelLat);
+		assertTrue(popularList.isEmpty());
+		assertTrue(popularList.size() == 0);
+		restaurantService.restaurantsInMyArea(notInHelLat, lon).getSections().isEmpty();
+	}
+
+	@Test
+	@DisplayName("New restaurants list - valid coordinates")
 	void checkNewList() {
 		List<Restaurant> newList = restaurantService.newList(lon, lat);
 		assertNotNull(newList);
@@ -61,10 +57,23 @@ public class RestaurantServiceTest {
 		for (Restaurant r : newList) {
 			assertTrue(!r.opendFourMonthsAgo());
 		}
+		for (int i = 0; i < newList.size() - 1; i++) {
+			int j = i + 1;
+			assertTrue(newList.get(i).getLaunchDate().isAfter(newList.get(j).getLaunchDate()));
+		}
 	}
 
 	@Test
-	@DisplayName("Nearby restaurants list")
+	@DisplayName("New restaurnts list - invalid coordinates")
+	void checkNewList_inValidLat() {
+		List<Restaurant> newList = restaurantService.newList(lon, notInHelLat);
+		assertTrue(newList.isEmpty());
+		assertTrue(newList.size() == 0);
+		restaurantService.restaurantsInMyArea(notInHelLat, lon).getSections().isEmpty();
+	}
+
+	@Test
+	@DisplayName("Nearby restaurants list - valid coordinates")
 	void checkNearByList() {
 		List<Restaurant> nearByList = restaurantService.nearByList(lon, lat);
 		assertNotNull(nearByList);
@@ -81,6 +90,15 @@ public class RestaurantServiceTest {
 
 			assertTrue(distanceI < distanceJ);
 		}
+	}
+
+	@Test
+	@DisplayName("Nearby restaurnts list - invalid coordinates")
+	void checkNearByList_inValidLat() {
+		List<Restaurant> nearByList = restaurantService.nearByList(lon, notInHelLat);
+		assertTrue(nearByList.isEmpty());
+		assertTrue(nearByList.size() == 0);
+		assertTrue(restaurantService.restaurantsInMyArea(notInHelLat, lon).getSections().isEmpty());
 	}
 
 	private boolean checkDistanceOfAllRestaurants(List<Restaurant> list) {

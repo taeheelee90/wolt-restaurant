@@ -7,13 +7,6 @@ import org.springframework.web.client.RestTemplate;
 
 @Configuration
 public class AppConfig {
-	
-	// Used in UserService: convert IP to coordinate
-	@Bean
-	public RestTemplate restTemplate() {
-		return new RestTemplate();
-	}
-
 	// Used in RestaurantService: RestaurantVO to Restaurant
 	@Bean
 	public ModelMapper modelMapper() {
