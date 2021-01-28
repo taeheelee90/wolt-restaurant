@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -50,62 +49,28 @@ public class RestaurantService {
 		}
 	}
 
-	// TO DO : Return final lists
+	// Return final discovery
 	public Section restaurantsInMyArea(User user) {
-		// 1. Get user location
-		final double userLon = user.getLon();
-		final double userLat = user.getLat();
+		// 1. Make 3 different lists
+		List<Restaurant> popularRestaurants = popularList(user);
+		List<Restaurant> newRestaurants = newList(user);
+		List<Restaurant> nearByRestaurants = nearByList(user);
 
-		// 2. Make 3 different lists
-		List<Restaurant> popularRestaurants = popularList(userLon, userLat);
-		List<Restaurant> newRestaurants = newList(userLon, userLat);
-		List<Restaurant> nearByRestaurants = nearByList(userLon, userLat);
-
-		// 3. Formatting
-		Section discoverSection = new Section();
-		List<RestaurantVO> discovery = new ArrayList<>();
-
-		RestaurantData[] populars = new RestaurantData[10];
-
-		RestaurantVO vo1 = new RestaurantVO();
-		vo1.setTitle("Popular Restaurants");
-		for (Restaurant r : popularRestaurants) {
-			RestaurantData data = modelMapper.map(r, RestaurantData.class);
-			data.getLocation().add(r.getLongitude());
-			data.getLocation().add(r.getLatitude());
-			vo1.getRestaurants()[popularRestaurants.indexOf(r)] = data;
-		}
-		discovery.add(vo1);
-
-		RestaurantData[] news = new RestaurantData[10];
-		RestaurantVO vo2 = new RestaurantVO();
-		vo2.setTitle("New Restaurants");
-		for (Restaurant r : newRestaurants) {
-			RestaurantData data = modelMapper.map(r, RestaurantData.class);
-			data.getLocation().add(r.getLongitude());
-			data.getLocation().add(r.getLatitude());
-			vo2.getRestaurants()[newRestaurants.indexOf(r)] = data;
-		}
-		discovery.add(vo2);
-
-		RestaurantData[] nearBys = new RestaurantData[10];
-		RestaurantVO vo3 = new RestaurantVO();
-		vo3.setTitle("Nearby Restaurants");
-		for (Restaurant r : nearByRestaurants) {
-			RestaurantData data = modelMapper.map(r, RestaurantData.class);
-			data.getLocation().add(r.getLongitude());
-			data.getLocation().add(r.getLatitude());
-			vo3.getRestaurants()[nearByRestaurants.indexOf(r)] = data;
-		}		
-		discovery.add(vo3);
-
-		discoverSection.setSections(discovery);
-		return discoverSection;
-
+		// 2. Combine lists
+		List<RestaurantVO> discovery = combineLists(popularRestaurants, newRestaurants, nearByRestaurants);
+		
+		// 3. Format combined lists
+		Section discoverySection = new Section();
+		discoverySection.setSections(discovery);
+		
+		return discoverySection;
 	}
 
-	// Return 10 popular restaurants in descending order - DONE!!
-	public List<Restaurant> popularList(double userLon, double userLat) {
+
+	// Return 10 popular restaurants in descending order 
+	public List<Restaurant> popularList(User user) {
+		final double userLon = user.getLon();
+		final double userLat = user.getLat();
 		List<Restaurant> restaurants = repository.findByOnlineOrderByPopularityDesc(true);
 		restaurants = removeTooFarRestaurants(restaurants, userLon, userLat);
 
@@ -115,9 +80,10 @@ public class RestaurantService {
 		return restaurants;
 	}
 
-	// Return 10 newest restaurants in descending order - DONE!!
-	public List<Restaurant> newList(double userLon, double userLat) {
-
+	// Return 10 newest restaurants in descending order
+	public List<Restaurant> newList(User user) {
+		final double userLon = user.getLon();
+		final double userLat = user.getLat();
 		List<Restaurant> restaurants = repository.findByOnlineOrderByLaunchDateDesc(true);
 		restaurants = removeTooFarRestaurants(restaurants, userLon, userLat);
 
@@ -130,8 +96,10 @@ public class RestaurantService {
 		return restaurants;
 	}
 
-	// Return 10 newest restaurants in ascending order
-	public List<Restaurant> nearByList(double userLon, double userLat) {
+	// Return 10 closest restaurants in ascending order
+	public List<Restaurant> nearByList(User user) {
+		final double userLon = user.getLon();
+		final double userLat = user.getLat();
 		List<Restaurant> restaurants = repository.findByOnline(true);
 		restaurants = removeTooFarRestaurants(restaurants, userLon, userLat);
 
@@ -146,11 +114,7 @@ public class RestaurantService {
 
 	// Order NearBy Restaurants by distance
 	private List<Restaurant> orderByDistance(List<Restaurant> restaurants, double userLon, double userLat) {
-		for (Restaurant r : restaurants) {
-			double orgDistance = calcDistance(userLon, userLat, r.getLongitude(), r.getLatitude());
-
-		}
-
+	
 		for (int i = 0; i < restaurants.size() - 1; i++) {
 			for (int j = 1; j < restaurants.size(); j++) {
 				double d1 = calcDistance(userLon, userLat, restaurants.get(j - 1).getLongitude(),
@@ -195,7 +159,7 @@ public class RestaurantService {
 	}
 
 	// Calculate distance between User location and Restaurant
-	private double calcDistance(double userLong, double userLat, double restaurantLong, double restaurantLat) {
+	public double calcDistance(double userLong, double userLat, double restaurantLong, double restaurantLat) {
 
 		userLat = Math.toRadians(userLat);
 		userLong = Math.toRadians(userLong);
@@ -206,5 +170,41 @@ public class RestaurantService {
 		return earthRadius * Math.acos(Math.sin(userLat) * Math.sin(restaurantLat)
 				+ Math.cos(userLat) * Math.cos(restaurantLat) * Math.cos(userLong - restaurantLong));
 	}
+	
 
+	// Combine all three lists to one list
+	private List<RestaurantVO> combineLists(List<Restaurant> popularRestaurants, List<Restaurant> newRestaurants,
+			List<Restaurant> nearByRestaurants) {
+		
+		List<RestaurantVO> discovery = new ArrayList<>();
+		
+		RestaurantVO vo1 = new RestaurantVO();
+		RestaurantVO vo2 = new RestaurantVO();
+		RestaurantVO vo3 = new RestaurantVO();
+		
+		vo1.setTitle("Popular Restaurants");
+		mapRestaurantsToData(popularRestaurants, vo1);		
+		discovery.add(vo1);
+		
+		vo2.setTitle("New Restaurants");
+		mapRestaurantsToData(newRestaurants, vo2);
+		discovery.add(vo2);
+
+		
+		vo3.setTitle("Nearby Restaurants");
+		mapRestaurantsToData(nearByRestaurants, vo3);
+		discovery.add(vo3);
+		
+		return discovery;
+	}
+
+	// Map Restaurants to RestaurantData
+	private void mapRestaurantsToData(List<Restaurant> restaurants, RestaurantVO vo) {
+		for (Restaurant r : restaurants) {
+			RestaurantData data = modelMapper.map(r, RestaurantData.class);
+			data.getLocation().add(r.getLongitude());
+			data.getLocation().add(r.getLatitude());
+			vo.getRestaurants()[restaurants.indexOf(r)] = data;
+		}		
+	}
 }
