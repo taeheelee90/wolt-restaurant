@@ -7,5 +7,6 @@
 * PostgreSQL
 
 # How to start
-* Set postgreSQL datasource, username, passworld in application.properties
+* Open wolt-restaurant/src/main/resources/application.properties 
+* Set postgreSQL datasource, username, password
 * Start maven 
